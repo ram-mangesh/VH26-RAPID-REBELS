@@ -19,13 +19,13 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
 
   useEffect(() => {
     fetchRate()
-    const interval = setInterval(fetchRate, 5000)
+    const interval = setInterval(fetchRate, 3000)
     return () => clearInterval(interval)
   }, [fetchRate])
 
   const showFeedback = (msg: string) => {
     setFeedback(msg)
-    setTimeout(() => setFeedback(''), 3000)
+    setTimeout(() => setFeedback(''), 4000)
   }
 
   const handleRateChange = async (newRate: number) => {
@@ -41,6 +41,25 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
     } finally {
       setSetting(false)
     }
+  }
+
+  const handleGradualRamp = async (targetRate: number) => {
+    if (setting || clearing) return
+    const steps = [1000, 5000, 10000, 20000, targetRate].filter(
+      (s) => s > (rate ?? 1000) && s <= targetRate
+    )
+    if (steps.length === 0) {
+      await handleRateChange(targetRate)
+      return
+    }
+    showFeedback(`Ramping up: ${steps.join(' → ')} → ${targetRate / 1000}K`)
+    for (const step of steps) {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await handleRateChange(step)
+    }
+    setTimeout(async () => {
+      await handleRateChange(targetRate)
+    }, 500)
   }
 
   const handleClear = async () => {
@@ -66,10 +85,10 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
   }
 
   const presets = [
-    { label: '1K', value: 1000 },
-    { label: '10K', value: 10000 },
-    { label: '50K', value: 50000 },
-    { label: '1L', value: 100000 },
+    { label: '1K', value: 1000, gradual: false },
+    { label: '10K', value: 10000, gradual: false },
+    { label: '50K', value: 50000, gradual: true },
+    { label: '1L', value: 100000, gradual: true },
   ]
 
   return (
@@ -101,10 +120,10 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
       </button>
 
       <div className="flex items-center gap-1">
-        {presets.map(({ label, value }) => (
+        {presets.map(({ label, value, gradual }) => (
           <button
             key={value}
-            onClick={() => handleRateChange(value)}
+            onClick={() => gradual ? handleGradualRamp(value) : handleRateChange(value)}
             disabled={setting || rate === value}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               rate === value
@@ -113,6 +132,7 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
             }`}
           >
             {label}
+            {gradual && <span className="ml-0.5 opacity-50">→</span>}
           </button>
         ))}
       </div>

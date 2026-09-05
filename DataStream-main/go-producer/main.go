@@ -83,6 +83,7 @@ func main() {
 			metrics.GET("/revenue-by-region", h.GetRevenueByRegion)
 			metrics.GET("/top-products", h.GetTopProducts)
 			metrics.GET("/error-rate", h.GetErrorRate)
+			metrics.GET("/realtime-rate", h.GetRealtimeRate)
 		}
 	}
 

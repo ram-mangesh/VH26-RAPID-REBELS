@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ErrorRate, OrdersPerMinute, RevenueByRegion, TopProduct, GeneratorRate } from '../types'
+import type { ErrorRate, OrdersPerMinute, RevenueByRegion, TopProduct, GeneratorRate, RealtimeRate } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -38,5 +38,10 @@ export async function setGeneratorRate(rate: number): Promise<GeneratorRate> {
 
 export async function clearPipeline(): Promise<{ success: boolean; message: string }> {
   const { data } = await api.post('/pipeline/clear')
+  return data
+}
+
+export async function fetchRealtimeRate(): Promise<RealtimeRate> {
+  const { data } = await api.get<RealtimeRate>('/metrics/realtime-rate')
   return data
 }

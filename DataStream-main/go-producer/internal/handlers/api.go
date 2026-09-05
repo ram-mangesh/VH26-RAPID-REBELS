@@ -97,7 +97,7 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 func (h *Handler) GetOrdersPerMinute(c *gin.Context) {
 	rows, err := h.ch.Query(`
 		SELECT
-			toStartOfMinute(minute) AS minute,
+			minute,
 			order_count,
 			total_revenue,
 			failed_count
@@ -112,6 +112,25 @@ func (h *Handler) GetOrdersPerMinute(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
+
+	// Check for realtime data to append
+	realtimeRows, err := h.ch.Query(`
+		SELECT
+			timestamp AS minute,
+			accepted AS order_count,
+			0 AS total_revenue,
+			rejected AS failed_count
+		FROM ecommerce.realtime_orders_per_minute
+		WHERE timestamp >= now() - INTERVAL 10 MINUTE
+		ORDER BY timestamp DESC
+		LIMIT 1
+	`)
+	if err == nil && len(realtimeRows) > 0 {
+		realtimeRow := realtimeRows[0]
+		c.JSON(http.StatusOK, append(rows, realtimeRow))
+		return
+	}
+
 	c.JSON(http.StatusOK, rows)
 }
 
@@ -194,6 +213,14 @@ func (h *Handler) GetTotalEvents(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"total_events": int(rows[0]["total_count"].(int64))})
+}
+
+func (h *Handler) GetRealtimeRate(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"events_per_minute": metrics.GetEventsPerMinute(),
+		"events_per_second": metrics.GetEventsPerSecond(),
+		"generator_rate":    h.gen.GetRate(),
+	})
 }
 
 func (h *Handler) SetGeneratorRate(c *gin.Context) {

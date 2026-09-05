@@ -33,6 +33,7 @@ CH_PASS         = os.getenv("CLICKHOUSE_PASSWORD", "")
 LATE_TOLERANCE_S = 10
 WINDOW_1M_S      = 60
 WINDOW_5M_S      = 300
+REALTIME_FLUSH_S = 10
 
 
 # ─── Connections ──────────────────────────────────────────────────────────────
@@ -275,6 +276,16 @@ def write_total_event_count(ch, count: int):
         log.error("Total event count write failed: %s", e)
 
 
+def write_realtime_counter(ch, accepted: int, rejected: int):
+    try:
+        dt = datetime.now(timezone.utc)
+        ch.insert("realtime_orders_per_minute",
+                  [[dt, accepted, rejected, int((accepted / max(rejected, 1)) * 100) if rejected > 0 else 100]],
+                  column_names=["timestamp", "accepted", "rejected", "success_pct"])
+    except Exception as e:
+        log.error("Realtime counter write failed: %s", e)
+
+
 # ─── Main loop ────────────────────────────────────────────────────────────────
 
 def main():
@@ -349,13 +360,16 @@ def main():
                         log.error("Raw batch write failed: %s", e)
 
         now = time.time()
-        if raw_batch and (len(raw_batch) >= 100 or now - last_flush >= 5):
+        if raw_batch and (len(raw_batch) >= 100 or now - last_flush >= 2):
             try:
                 write_raw_batch(ch, raw_batch)
                 raw_batch = []
                 last_flush = now
             except Exception as e:
                 log.error("Raw batch write failed: %s", e)
+
+        rejected_count = consumed_count - accepted_count
+        write_realtime_counter(ch, accepted_count, rejected_count)
 
         for ts, events in win_1m.closed_buckets():
             try:

@@ -101,6 +101,18 @@ ENGINE = MergeTree()
 ORDER BY timestamp
 TTL timestamp + INTERVAL 7 DAY;
 
+-- ─── Realtime Orders Counter (updated every 10s for fast graph updates) ───────
+CREATE TABLE IF NOT EXISTS ecommerce.realtime_orders_per_minute
+(
+    timestamp     DateTime('UTC'),
+    accepted      UInt64,
+    rejected      UInt64,
+    success_pct   Float64
+)
+ENGINE = MergeTree()
+ORDER BY timestamp
+TTL timestamp + INTERVAL 7 DAY;
+
 -- ─── Materialized views for fast queries ─────────────────────────────────────
 CREATE MATERIALIZED VIEW IF NOT EXISTS ecommerce.orders_last_hour_mv
 ENGINE = SummingMergeTree()

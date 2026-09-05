@@ -27,6 +27,13 @@ export interface ErrorRate {
 export interface GeneratorRate {
   events_per_minute: number
   events_per_second: number
+  current_eps?: number
+}
+
+export interface RealtimeRate {
+  events_per_minute: number
+  events_per_second: number
+  generator_rate: number
 }
 
 export interface MetricsState {
@@ -35,6 +42,7 @@ export interface MetricsState {
   topProducts: TopProduct[]
   errorRate: ErrorRate | null
   generatorRate: GeneratorRate | null
+  realtimeRate: RealtimeRate | null
   loading: boolean
   lastUpdated: Date | null
 }

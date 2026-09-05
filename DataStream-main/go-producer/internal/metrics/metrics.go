@@ -30,15 +30,21 @@ var (
 )
 
 var (
-	EventsSinceLast int64
-	eventsPerSecond int64
+	EventsSinceLast  int64
+	eventsPerSecond  int64
+	EventsPerMinute  int64
 )
 
 func ResetSecondCounter() {
 	eps := atomic.SwapInt64(&EventsSinceLast, 0)
 	atomic.StoreInt64(&eventsPerSecond, eps)
+	atomic.StoreInt64(&EventsPerMinute, eps*60)
 }
 
 func GetEventsPerSecond() int64 {
 	return atomic.LoadInt64(&eventsPerSecond)
+}
+
+func GetEventsPerMinute() int64 {
+	return atomic.LoadInt64(&EventsPerMinute)
 }
