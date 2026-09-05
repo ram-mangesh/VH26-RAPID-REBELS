@@ -35,6 +35,20 @@ ORDER BY minute
 TTL minute + INTERVAL 7 DAY;
 
 -- ─── Revenue by Region (5-min tumbling window) ──────────────────────────────
+CREATE TABLE IF NOT EXISTS ecommerce.orders_per_15s
+(
+    bucket           DateTime('UTC'),
+    order_count      UInt64,
+    total_revenue    Float64,
+    completed_count  UInt64,
+    failed_count     UInt64,
+    avg_order_value  Float64
+)
+ENGINE = ReplacingMergeTree()
+ORDER BY bucket
+TTL bucket + INTERVAL 7 DAY;
+
+-- ─── Revenue by Region (5-min tumbling window) ──────────────────────────────
 CREATE TABLE IF NOT EXISTS ecommerce.revenue_by_region
 (
     window_start     DateTime('UTC'),

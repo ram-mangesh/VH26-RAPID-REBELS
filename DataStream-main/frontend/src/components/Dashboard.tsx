@@ -21,9 +21,9 @@ export function Dashboard() {
     useMetrics()
   const { theme, toggleTheme } = useTheme()
 
-  const latestMinute = ordersPerMinute[ordersPerMinute.length - 1]
-  const totalOrdersLastMin = latestMinute?.order_count ?? 0
-  const totalRevenueLastMin = latestMinute?.total_revenue ?? 0
+  const latestBucket = ordersPerMinute[ordersPerMinute.length - 1]
+  const totalOrdersPerMin = (latestBucket?.order_count ?? 0) * 4
+  const totalRevenuePerMin = (latestBucket?.total_revenue ?? 0) * 4
   const errorRateValue = errorRate?.error_rate ?? 0
   const totalRevenueRegions = revenueByRegion.reduce((s, r) => s + Number(r.revenue), 0)
 
@@ -92,15 +92,15 @@ export function Dashboard() {
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <MetricCard
             title="Orders / min"
-            value={totalOrdersLastMin.toLocaleString()}
-            subtitle="last minute window"
+            value={totalOrdersPerMin.toLocaleString()}
+            subtitle="last 15s window × 4"
             color="blue"
             icon={<BagIcon />}
           />
           <MetricCard
             title="Revenue / min"
-            value={`$${Math.round(totalRevenueLastMin).toLocaleString()}`}
-            subtitle="last minute window"
+            value={`$${Math.round(totalRevenuePerMin).toLocaleString()}`}
+            subtitle="last 15s window × 4"
             color="green"
             icon={<CurrencyIcon />}
           />
@@ -120,11 +120,11 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Orders per Minute Chart */}
+        {/* Orders per 15s Chart */}
         <div className="mb-6 rounded-xl border border-custom bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-200">Orders per Minute</h2>
-            <span className="text-xs text-slate-500">Last 60 minutes</span>
+            <h2 className="text-sm font-semibold text-slate-200">Orders — real-time (15s buckets)</h2>
+            <span className="text-xs text-slate-500">Last 5 minutes · sliding</span>
           </div>
           <OrdersChart data={ordersPerMinute} />
         </div>

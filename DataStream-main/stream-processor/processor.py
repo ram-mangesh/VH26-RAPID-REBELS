@@ -31,6 +31,7 @@ CH_USER         = os.getenv("CLICKHOUSE_USER",    "default")
 CH_PASS         = os.getenv("CLICKHOUSE_PASSWORD", "")
 
 LATE_TOLERANCE_S = 10
+WINDOW_15S_S     = 15
 WINDOW_1M_S      = 60
 WINDOW_5M_S      = 300
 REALTIME_FLUSH_S = 10
@@ -236,6 +237,18 @@ def write_1m_window(ch, ts: int, events: list):
     log.info("1-min window %s: %d events $%.2f", dt.strftime("%H:%M"), total, revenue)
 
 
+def write_15s_window(ch, ts: int, events: list):
+    if not events:
+        return
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    total, revenue, done, failed, avg = agg_orders_per_minute(events)
+    ch.insert("orders_per_15s",
+              [[dt, total, revenue, done, failed, avg]],
+              column_names=["bucket", "order_count", "total_revenue",
+                            "completed_count", "failed_count", "avg_order_value"])
+    log.info("15s window %s: %d events $%.2f", dt.strftime("%H:%M:%S"), total, revenue)
+
+
 def write_5m_window(ch, ts: int, events: list):
     if not events:
         return
@@ -310,6 +323,7 @@ def main():
     ch       = connect_clickhouse()
     consumer = connect_kafka_consumer()
 
+    win_15s = TumblingWindow(WINDOW_15S_S)
     win_1m = TumblingWindow(WINDOW_1M_S)
     win_5m = TumblingWindow(WINDOW_5M_S)
 
@@ -351,6 +365,7 @@ def main():
                 event_time_ms = extracted["event_time"]
                 window_events.append(extracted)
 
+                win_15s.add(event_time_ms, extracted)
                 win_1m.add(event_time_ms, extracted)
                 win_5m.add(event_time_ms, extracted)
 
@@ -388,6 +403,12 @@ def main():
 
         rejected_count = consumed_count - accepted_count
         write_realtime_counter(ch, accepted_count, rejected_count)
+
+        for ts, events in win_15s.closed_buckets():
+            try:
+                write_15s_window(ch, ts, events)
+            except Exception as e:
+                log.error("15s window write failed: %s", e)
 
         for ts, events in win_1m.closed_buckets():
             try:

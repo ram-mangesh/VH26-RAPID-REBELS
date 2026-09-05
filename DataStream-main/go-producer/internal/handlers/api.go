@@ -97,13 +97,13 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 func (h *Handler) GetOrdersPerMinute(c *gin.Context) {
 	rows, err := h.ch.Query(`
 		SELECT
-			toStartOfMinute(minute) AS minute,
+			bucket AS minute,
 			order_count,
 			total_revenue,
 			failed_count
-		FROM ecommerce.orders_per_minute
-		WHERE minute >= now() - INTERVAL 60 MINUTE
-		ORDER BY minute ASC
+		FROM ecommerce.orders_per_15s
+		WHERE bucket >= now() - INTERVAL 30 MINUTE
+		ORDER BY bucket ASC
 	`)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

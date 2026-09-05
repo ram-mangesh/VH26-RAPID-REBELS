@@ -14,21 +14,26 @@ interface Props {
   data: OrdersPerMinute[]
 }
 
+function parseUtc(dateStr: string): Date {
+  try {
+    return new Date(dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z')
+  } catch {
+    return new Date(dateStr)
+  }
+}
+
 function formatTime(value: string | number) {
   try {
-    if (typeof value === 'string') {
-      return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return new Date(Number(value)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   } catch {
     return String(value)
   }
 }
 
 export function OrdersChart({ data }: Props) {
-  const chartData = data.slice(-30).map(d => ({
+  const chartData = data.slice(-20).map(d => ({
     ...d,
-    _ts: new Date(d.minute).getTime(),
+    _ts: parseUtc(d.minute).getTime(),
   }))
   if (chartData.length === 0) {
     return (
@@ -39,6 +44,7 @@ export function OrdersChart({ data }: Props) {
   }
 
   const maxOrders = Math.max(...chartData.map(d => Number(d.order_count) || 0)) * 1.15
+  const latestTs = chartData[chartData.length - 1]._ts
 
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -47,9 +53,9 @@ export function OrdersChart({ data }: Props) {
         <XAxis
           dataKey="_ts"
           type="number"
-          domain={['dataMin', 'dataMax']}
+          domain={[latestTs - 5 * 60 * 1000, latestTs]}
           tickFormatter={(ts) => {
-            try { return new Date(Number(ts)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+            try { return new Date(Number(ts)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }
             catch { return String(ts) }
           }}
           tick={{ fontSize: 10, fill: '#94a3b8' }}
