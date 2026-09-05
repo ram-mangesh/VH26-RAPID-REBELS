@@ -406,8 +406,9 @@ function formatNum(n) {
 
 async function setRate(rate) {
   document.getElementById('btnBaseline').classList.toggle('active', rate === 1000);
-  document.getElementById('btnSpike').classList.toggle('active', rate === 20000);
-  addLog('info', `Rate set to ${rate.toLocaleString()} events/min`);
+  document.getElementById('btnSpike').classList.toggle('active', rate === 100000);
+  const rateLabel = rate >= 100000 ? `1L (${rate.toLocaleString()})` : rate.toLocaleString();
+  addLog('info', `Rate set to ${rateLabel} events/min`);
   await fetch('/api/rate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
