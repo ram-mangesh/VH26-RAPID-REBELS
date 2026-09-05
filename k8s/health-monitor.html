@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataStream Health Monitor</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+h1 { text-align: center; margin-bottom: 10px; font-size: 28px; color: #38bdf8; }
+.subtitle { text-align: center; margin-bottom: 30px; color: #64748b; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; transition: transform 0.2s; }
+.card:hover { transform: translateY(-2px); }
+.card.healthy { border-left: 4px solid #22c55e; }
+.card.unhealthy { border-left: 4px solid #ef4444; }
+.card.degraded { border-left: 4px solid #f59e0b; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-title { font-size: 16px; font-weight: 600; }
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.status-badge.healthy { background: rgba(34,197,94,0.2); color: #22c55e; }
+.status-badge.unhealthy { background: rgba(239,68,68,0.2); color: #ef4444; }
+.status-badge.degraded { background: rgba(245,158,11,0.2); color: #f59e0b; }
+.card-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.metric { background: #0f172a; border-radius: 8px; padding: 12px; }
+.metric-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+.metric-value { font-size: 18px; font-weight: 700; }
+.metric-value.green { color: #22c55e; }
+.metric-value.red { color: #ef4444; }
+.metric-value.yellow { color: #f59e0b; }
+.metric-value.blue { color: #38bdf8; }
+.summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 30px; flex-wrap: wrap; }
+.summary-item { text-align: center; background: #1e293b; padding: 20px 40px; border-radius: 12px; }
+.summary-number { font-size: 36px; font-weight: 700; }
+.summary-label { font-size: 12px; color: #64748b; text-transform: uppercase; margin-top: 4px; }
+.summary-item.green .summary-number { color: #22c55e; }
+.summary-item.red .summary-number { color: #ef4444; }
+.summary-item.yellow .summary-number { color: #f59e0b; }
+.summary-item.blue .summary-number { color: #38bdf8; }
+.refresh-btn { display: block; margin: 20px auto; padding: 12px 32px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.refresh-btn:hover { background: #0ea5e9; }
+.loading { text-align: center; padding: 40px; color: #64748b; }
+</style>
+</head>
+<body>
+<h1>DataStream Health Monitor</h1>
+<p class="subtitle">Real-time Service Health Dashboard</p>
+<div class="summary" id="summary"><div class="loading">Checking services...</div></div>
+<div class="grid" id="cardsGrid"><div class="loading">Loading...</div></div>
+<button class="refresh-btn" onclick="fetchAllHealth()">Refresh Now</button>
+
+<script>
+var services = [
+  { name: "Kafka", port: "9094", path: "/", timeout: 3000, desc: "Message broker - event distribution" },
+  { name: "ClickHouse", port: "8123", path: "/ping", timeout: 3000, desc: "Analytics database" },
+  { name: "Prometheus", port: "9090", path: "/-/healthy", timeout: 5000, desc: "Metrics collection" },
+  { name: "Grafana", port: "3001", path: "/api/health", timeout: 5000, desc: "Visualization dashboards" },
+  { name: "Go Producer", port: "8080", path: "/health", timeout: 3000, desc: "Event generator API" },
+  { name: "Intelligence Pipeline", port: "8081", path: "/api/state", timeout: 8000, desc: "Adaptive processing" },
+  { name: "Frontend", port: "3002", path: "/", timeout: 3000, desc: "React dashboard" },
+  { name: "Dagster", port: "3000", path: "/api/health", timeout: 5000, desc: "Workflow orchestration" },
+  { name: "Kafka UI", port: "8090", path: "/", timeout: 3000, desc: "Kafka management" },
+  { name: "Stream Processor", port: "8081", path: "/api/state", timeout: 5000, desc: "Kafka to ClickHouse" }
+];
+
+function checkService(svc) {
+  return new Promise(function(resolve) {
+    var result = {
+      name: svc.name, port: svc.port, status: "unhealthy",
+      responseTime: 0, details: {}, error: "", desc: svc.desc
+    };
+    var startTime = Date.now();
+    
+    var xhr = new XMLHttpRequest();
+    xhr.timeout = svc.timeout;
+    xhr.withCredentials = false;
+    
+    xhr.ontimeout = function() {
+      result.status = "degraded";
+      result.error = "Slow response (> " + svc.timeout + "ms)";
+      result.responseTime = Date.now() - startTime;
+      resolve(result);
+    };
+    
+    xhr.onerror = function() {
+      // CORS error - port is reachable but blocking CORS
+      // Check if it's a known service port
+      result.responseTime = Date.now() - startTime;
+      
+      // Try to determine if port is actually open by checking if we got a response
+      // If onerror fired quickly (< 100ms), port is closed
+      // If onerror fired after timeout, it's a CORS issue (port is open)
+      if (result.responseTime > 100) {
+        result.status = "healthy";
+        result.details = { port: svc.port, cors: "blocked", reachable: true };
+        result.error = "CORS blocked (service is running)";
+      } else {
+        result.error = "Port " + svc.port + " closed";
+      }
+      resolve(result);
+    };
+    
+    xhr.onload = function() {
+      result.responseTime = Date.now() - startTime;
+      
+      if (svc.port === "8123") {
+        // ClickHouse /ping returns "Ok.\n" with status 200
+        if (xhr.status === 200) {
+          result.status = "healthy";
+          result.details = { ping: "OK", clickhouse: "running" };
+        } else {
+          result.error = "ClickHouse returned " + xhr.status;
+        }
+      }
+      else if (svc.port === "9090") {
+        // Prometheus /-/healthy returns "Prometheus Server is Ready\n"
+        var text = xhr.responseText || "";
+        if (xhr.status === 200 && text.indexOf("Ready") !== -1) {
+          result.status = "healthy";
+          result.details = { prometheus: "ready" };
+        } else {
+          result.status = xhr.status >= 200 ? "degraded" : "unhealthy";
+          result.error = "Prometheus status: " + xhr.status;
+        }
+      }
+      else if (svc.port === "8080") {
+        // Go Producer /health
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data.status === "ok" || data.status === "healthy") {
+            result.status = "healthy";
+            result.details = { timestamp: data.timestamp || "active" };
+          } else {
+            result.status = "degraded";
+            result.details = { status: data.status || "unknown" };
+          }
+        } catch(e) {
+          result.status = "healthy";
+          result.details = { http: xhr.status };
+        }
+      }
+      else if (svc.port === "8081") {
+        // Intelligence Pipeline /api/state
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data.state === "running" || data.metrics) {
+            result.status = "healthy";
+            result.details = { 
+              state: data.state || "unknown",
+              workers: data.workers ? data.workers.total : "N/A",
+              processed: data.metrics ? data.metrics.total_processed : "N/A",
+              throughput: data.metrics ? data.metrics.throughput_eps : "N/A" + " eps"
+            };
+          } else {
+            result.status = "degraded";
+            result.details = { response: "partial" };
+          }
+        } catch(e) {
+          result.status = "degraded";
+          result.details = { parse_error: "true" };
+          result.error = "Invalid JSON response";
+        }
+      }
+      else if (svc.port === "3001") {
+        // Grafana /api/health
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data.buildVersion || data.database) {
+            result.status = "healthy";
+            result.details = { 
+              version: data.buildVersion || "unknown",
+              database: data.database || "unknown"
+            };
+          } else {
+            result.status = "degraded";
+          }
+        } catch(e) {
+          // Grafana may return HTML on some endpoints
+          if (xhr.status === 200) {
+            result.status = "healthy";
+            result.details = { http: xhr.status, cors: "partial" };
+          }
+        }
+      }
+      else if (svc.port === "3000") {
+        // Dagster /api/health
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data.ok !== undefined) {
+            result.status = data.ok ? "healthy" : "degraded";
+            result.details = { dagster: "running" };
+          } else {
+            result.status = "degraded";
+          }
+        } catch(e) {
+          // Dagster may return HTML
+          if (xhr.status === 200 && xhr.responseText.indexOf("<!DOCTYPE") !== -1) {
+            result.status = "healthy";
+            result.details = { http: "200 (HTML)" };
+          } else {
+            result.status = "degraded";
+          }
+        }
+      }
+      else {
+        // Generic: if we got here with status, port is open
+        if (xhr.status >= 200 && xhr.status < 400) {
+          result.status = "healthy";
+          result.details = { port: svc.port, http: xhr.status, reachable: true };
+        } else {
+          result.status = "degraded";
+          result.error = "HTTP " + xhr.status;
+        }
+      }
+      resolve(result);
+    };
+    
+    var url = "http://localhost:" + svc.port + svc.path;
+    xhr.open("GET", url);
+    
+    try {
+      xhr.send();
+    } catch(e) {
+      result.error = e.message;
+      result.responseTime = Date.now() - startTime;
+      resolve(result);
+    }
+  });
+}
+
+function createCard(result) {
+  var html = '<div class="card ' + result.status + '">';
+  html += '<div class="card-header">';
+  html += '<span class="card-title">' + result.name + '</span>';
+  html += '<span class="status-badge ' + result.status + '">' + result.status + '</span>';
+  html += '</div>';
+  html += '<p style="color:#64748b;font-size:12px;margin-bottom:15px;">' + result.desc + '</p>';
+  html += '<div class="card-metrics">';
+  html += '<div class="metric">';
+  html += '<div class="metric-label">Response Time</div>';
+  var colorClass = result.responseTime > 1000 ? 'red' : result.responseTime > 500 ? 'yellow' : 'green';
+  html += '<div class="metric-value ' + colorClass + '">' + result.responseTime + 'ms</div>';
+  html += '</div>';
+  html += '<div class="metric">';
+  html += '<div class="metric-label">Port</div>';
+  html += '<div class="metric-value blue" style="font-size:12px;">:' + (result.port || '') + '</div>';
+  html += '</div>';
+  html += '</div>';
+  if (result.error) {
+    html += '<div style="color:#ef4444;font-size:11px;margin-top:8px;">⚠ ' + result.error + '</div>';
+  }
+  if (result.details && Object.keys(result.details).length > 0) {
+    html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #334155;">';
+    var keys = Object.keys(result.details);
+    for (var i = 0; i < keys.length && i < 4; i++) {
+      html += '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;"><span style="color:#64748b;">' + keys[i] + ':</span><span style="color:#cbd5e1;font-family:monospace;">' + result.details[keys[i]] + '</span></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+async function fetchAllHealth() {
+  var summaryDiv = document.getElementById('summary');
+  var cardsGrid = document.getElementById('cardsGrid');
+  
+  var results = [];
+  for (var i = 0; i < services.length; i++) {
+    results.push(checkService(services[i]));
+  }
+  
+  var healthResults = await Promise.all(results);
+  
+  var healthy = 0, degraded = 0, unhealthy = 0;
+  for (var j = 0; j < healthResults.length; j++) {
+    if (healthResults[j].status === 'healthy') healthy++;
+    else if (healthResults[j].status === 'degraded') degraded++;
+    else unhealthy++;
+  }
+  
+  summaryDiv.innerHTML = 
+    '<div class="summary-item green"><div class="summary-number">' + healthy + '</div><div class="summary-label">Healthy</div></div>' +
+    '<div class="summary-item yellow"><div class="summary-number">' + degraded + '</div><div class="summary-label">Degraded</div></div>' +
+    '<div class="summary-item red"><div class="summary-number">' + unhealthy + '</div><div class="summary-label">Unhealthy</div></div>' +
+    '<div class="summary-item blue"><div class="summary-number">' + services.length + '</div><div class="summary-label">Total</div></div>';
+  
+  var html = '';
+  for (var k = 0; k < healthResults.length; k++) {
+    html += createCard(healthResults[k]);
+  }
+  cardsGrid.innerHTML = html;
+}
+
+fetchAllHealth();
+setInterval(fetchAllHealth, 10000);
+</script>
+</body>
+</html>

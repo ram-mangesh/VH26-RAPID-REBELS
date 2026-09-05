@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligent Data Pipeline — Live Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-left">
+      <h1>Intelligent Data Pipeline</h1>
+      <span class="subtitle">Adaptive Processing Dashboard</span>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
+      <div class="status-badge" id="statusBadge">
+        <span class="dot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div class="mode-badge" id="modeBadge">NORMAL</div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <button id="btnBaseline" class="btn btn-blue" onclick="setRate(1000)">Baseline (1K/min)</button>
+    <button id="btnSpike" class="btn btn-red" onclick="setRate(20000)">Spike (20K/min)</button>
+    <button id="btnStop" class="btn btn-gray" onclick="togglePipeline()">Stop</button>
+    <button class="btn btn-outline" onclick="resetPipeline()">Reset</button>
+    <div class="rate-display">
+      <span class="label">Current Rate:</span>
+      <span id="currentRate" class="value">0</span>
+      <span class="unit">evt/min</span>
+    </div>
+    <div class="overload-indicator" id="overloadIndicator">
+      <span class="ol-dot"></span>
+      <span id="overloadText">LOAD: NORMAL</span>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Throughput</div>
+      <div class="kpi-value" id="kpiThroughput">0</div>
+      <div class="kpi-unit">events/sec</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Processed</div>
+      <div class="kpi-value" id="kpiProcessed">0</div>
+      <div class="kpi-unit">events</div>
+    </div>
+    <div class="kpi-card kpi-shed">
+      <div class="kpi-label">Events Shed</div>
+      <div class="kpi-value" id="kpiShed">0</div>
+      <div class="kpi-unit">non-critical dropped</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Workers Busy</div>
+      <div class="kpi-value"><span id="kpiWorkersBusy">0</span>/<span id="kpiWorkersTotal">0</span></div>
+      <div class="kpi-unit">active / total</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Queue Depth (per tier) — DECREASING = Healthy Processing</h2>
+      <div class="chart-container">
+        <canvas id="queueChart"></canvas>
+      </div>
+      <div class="queue-stats">
+        <div class="qstat qstat-critical">
+          <span class="qstat-dot"></span>Critical: <span id="qCritical">0</span>
+        </div>
+        <div class="qstat qstat-high">
+          <span class="qstat-dot"></span>High: <span id="qHigh">0</span>
+        </div>
+        <div class="qstat qstat-low">
+          <span class="qstat-dot"></span>Low: <span id="qLow">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Throughput (events/sec) — DECREASING = Backlog Clearing</h2>
+      <div class="chart-container">
+        <canvas id="throughputChart"></canvas>
+      </div>
+      <div class="queue-stats">
+        <div class="qstat qstat-critical">
+          <span class="qstat-dot"></span>Critical: <span id="tCritical">0</span>
+        </div>
+        <div class="qstat qstat-high">
+          <span class="qstat-dot"></span>High: <span id="tHigh">0</span>
+        </div>
+        <div class="qstat qstat-low">
+          <span class="qstat-dot"></span>Low: <span id="tLow">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card latency-card">
+      <h2>Latency — CRITICAL (orders/payments)</h2>
+      <div class="latency-row">
+        <div class="lat-item">
+          <div class="lat-value" id="latCAvg">0</div>
+          <div class="lat-label">Avg (ms)</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latCP50">0</div>
+          <div class="lat-label">P50</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latCP95">0</div>
+          <div class="lat-label">P95</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latCP99">0</div>
+          <div class="lat-label">P99</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card latency-card">
+      <h2>Latency — HIGH (inventory)</h2>
+      <div class="latency-row">
+        <div class="lat-item">
+          <div class="lat-value" id="latHAvg">0</div>
+          <div class="lat-label">Avg (ms)</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latHP50">0</div>
+          <div class="lat-label">P50</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latHP95">0</div>
+          <div class="lat-label">P95</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latHP99">0</div>
+          <div class="lat-label">P99</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card latency-card">
+      <h2>Latency — LOW (logs/clicks)</h2>
+      <div class="latency-row">
+        <div class="lat-item">
+          <div class="lat-value" id="latLAvg">0</div>
+          <div class="lat-label">Avg (ms)</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latLP50">0</div>
+          <div class="lat-label">P50</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latLP95">0</div>
+          <div class="lat-label">P95</div>
+        </div>
+        <div class="lat-item">
+          <div class="lat-value" id="latLP99">0</div>
+          <div class="lat-label">P99</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Event Type Breakdown</h2>
+      <div class="chart-container" style="height:160px">
+        <canvas id="breakdownChart"></canvas>
+      </div>
+      <div class="breakdown-grid" id="breakdownGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Reliability & Cost</h2>
+      <div class="routing-info">
+        <div class="route-row">
+          <span class="route-label">Duplicates Detected:</span>
+          <span class="route-value" id="relDedup">0</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Retries Performed:</span>
+          <span class="route-value" id="relRetried">0</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Adaptive Cost:</span>
+          <span class="route-value" id="relCostAdaptive">$0.0000</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Naive Baseline Cost:</span>
+          <span class="route-value route-shed" id="relCostNaive">$0.0000</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Cost Saved:</span>
+          <span class="route-value route-cost" id="relCostSaved">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Adaptive Router</h2>
+      <div class="routing-info">
+        <div class="route-row">
+          <span class="route-label">Current Mode:</span>
+          <span class="route-value" id="routeMode">NORMAL</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Admitted:</span>
+          <span class="route-value" id="routeAdmitted">0</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Shed (total):</span>
+          <span class="route-value route-shed" id="routeShed">0</span>
+        </div>
+        <div class="route-row">
+          <span class="route-label">Shed Policy:</span>
+          <span class="route-value route-policy" id="routePolicy">Critical: NEVER | High: &gt;85% | Low: &gt;60%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Processing Strategy</h2>
+      <div class="strategy-visual">
+        <div class="strategy-tier">
+          <div class="tier-bar tier-critical"></div>
+          <div class="tier-info">
+            <div class="tier-name">CRITICAL</div>
+            <div class="tier-desc" id="stratCritical">Stream — process immediately, 1 at a time</div>
+          </div>
+        </div>
+        <div class="strategy-tier">
+          <div class="tier-bar tier-high"></div>
+          <div class="tier-info">
+            <div class="tier-name">HIGH</div>
+            <div class="tier-desc" id="stratHigh">Stream — process immediately</div>
+          </div>
+        </div>
+        <div class="strategy-tier">
+          <div class="tier-bar tier-low"></div>
+          <div class="tier-info">
+            <div class="tier-name">LOW</div>
+            <div class="tier-desc" id="stratLow">Batch — micro-batched every 200ms</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shed-log-card">
+    <h2>Shed / Batch Event Log</h2>
+    <div class="shed-log" id="shedLog">
+      <div class="log-entry log-info">Pipeline starting... waiting for events.</div>
+    </div>
+  </div>
+
+  <div class="card trace-card">
+    <h2>Decision Trace — why did the router choose that? <span class="hint">live scored-decision breakdown</span></h2>
+    <div class="trace-formula">
+      score = priority×3.0 + latency/1000×1.5 + load×1.0 + saturation×2.0 + size×0.5
+    </div>
+    <div class="trace-list" id="traceList">
+      <div class="log-entry log-info">Waiting for routing decisions...</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Fault Injection — idempotent retry <span class="hint">prove exactly-once</span></h2>
+      <p class="panel-sub">Simulate a worker crash. The pipeline retries the event and, thanks to dedup + durable sink, the side-effect is persisted <strong>exactly once</strong>.</p>
+      <div class="route-row">
+        <button id="btnKill" class="btn btn-red" onclick="killWorker()">⚡ Kill Worker (1-shot crash)</button>
+        <button class="btn btn-purple" onclick="enableFaults()">Enable Faults (50%)</button>
+        <button class="btn btn-gray" onclick="disableFaults()">Disable Faults</button>
+      </div>
+      <div class="routing-info">
+        <div class="route-row"><span class="route-label">Faults Injected:</span><span class="route-value" id="faultInjected">0</span></div>
+        <div class="route-row"><span class="route-label">Retries Performed:</span><span class="route-value" id="faultRetried">0</span></div>
+        <div class="route-row"><span class="route-label">Duplicates Blocked:</span><span class="route-value" id="dupBlocked">0</span></div>
+        <div class="route-row"><span class="route-label">Events Persisted (SQLite):</span><span class="route-value" id="persisted">0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>A/B — Adaptive vs Naive <span class="hint">head-to-head under the same spike</span></h2>
+      <p class="panel-sub">Both pipelines stream an identical 40K/min overload. Adaptive sheds non-critical + batches; Naive cannot shed, so it queues everything and cripples critical latency.</p>
+      <button id="btnAB" class="btn btn-blue" onclick="runAB()">▶ Run A/B (≈25s)</button>
+      <div class="ab-status" id="abStatus">Not started.</div>
+      <div class="ab-grid" id="abGrid" style="display:none">
+        <div class="ab-col">
+          <div class="ab-title">Adaptive</div>
+          <div class="route-row"><span class="route-label">Critical P95:</span><span class="route-value ab-id" id="abAdaptiveLat">—</span></div>
+          <div class="route-row"><span class="route-label">Shed:</span><span class="route-value" id="abAdaptiveShed">—</span></div>
+        </div>
+        <div class="ab-col">
+          <div class="ab-title">Naive</div>
+          <div class="route-row"><span class="route-label">Critical P95:</span><span class="route-value ab-naive" id="abNaiveLat">—</span></div>
+          <div class="route-row"><span class="route-label">Shed:</span><span class="route-value" id="abNaiveShed">—</span></div>
+        </div>
+        <div class="ab-col ab-suffix">
+          <div class="route-row"><span class="route-label">Speedup:</span><span class="route-value ab-x" id="abSpeedup">—×</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>UCET I 2026 HACK-o-THON — Pixels to Possibilities</span>
+    <span>Intelligent Data Pipeline for Optimized Data Processing</span>
+  </footer>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
