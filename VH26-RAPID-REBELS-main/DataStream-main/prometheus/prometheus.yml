@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: 'go-producer'
+    static_configs:
+      - targets: ['go-producer:8080']
+    metrics_path: /metrics
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'clickhouse'
+    static_configs:
+      - targets: ['clickhouse:9000']
+    metrics_path: /metrics
+
+  - job_name: 'stream-processor'
+    static_configs:
+      - targets: ['stream-processor:8081']
+    metrics_path: /metrics
+
+  - job_name: 'intelligence-pipeline'
+    static_configs:
+      - targets: ['intelligence-pipeline:8081']
+    metrics_path: /metrics
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+    metrics_path: /metrics
+
+  - job_name: 'health-checks'
+    metrics_path: /-/healthy
+    static_configs:
+      - targets: ['prometheus:9090']
+        labels:
+          service: 'prometheus'
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+      - targets: ['go-producer:8080']
+        labels:
+          service: 'go-producer'
+      - targets: ['clickhouse:8123']
+        labels:
+          service: 'clickhouse'
+
+  - job_name: 'service-health'
+    metrics_path: /api/health
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+      - targets: ['intelligence-pipeline:8081']
+        labels:
+          service: 'intelligence-pipeline'

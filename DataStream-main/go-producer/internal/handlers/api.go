@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -35,22 +34,6 @@ func New(producer *kfk.Producer, gen *generator.Generator) *Handler {
 		topicDLQ:    getEnv("KAFKA_TOPIC_DLQ", "events-dlq"),
 		gen:         gen,
 	}
-}
-
-func toFloat64(v interface{}) float64 {
-	switch val := v.(type) {
-	case float64:
-		return val
-	case int64:
-		return float64(val)
-	case uint64:
-		return float64(val)
-	case string:
-		if f, err := strconv.ParseFloat(val, 64); err == nil {
-			return f
-		}
-	}
-	return 0
 }
 
 func getEnv(key, def string) string {
@@ -129,16 +112,7 @@ func (h *Handler) GetOrdersPerMinute(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	result := make([]map[string]interface{}, 0, len(rows))
-	for _, row := range rows {
-		result = append(result, map[string]interface{}{
-			"minute":         row["minute"],
-			"order_count":    toFloat64(row["order_count"]),
-			"total_revenue":  row["total_revenue"],
-			"failed_count":   toFloat64(row["failed_count"]),
-		})
-	}
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, rows)
 }
 
 func (h *Handler) GetRevenueByRegion(c *gin.Context) {
@@ -159,34 +133,7 @@ func (h *Handler) GetRevenueByRegion(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	if len(rows) == 0 {
-		rows, err = h.ch.Query(`
-			SELECT
-				region,
-				sum(total_amount) AS revenue,
-				count() AS orders
-			FROM ecommerce.orders
-			WHERE timestamp >= now() - INTERVAL 1 HOUR
-			GROUP BY region
-			ORDER BY revenue DESC
-		`)
-		if err != nil {
-			c.JSON(http.StatusOK, []map[string]interface{}{})
-			return
-		}
-		if rows == nil {
-			rows = []map[string]interface{}{}
-		}
-	}
-	result := make([]map[string]interface{}, 0, len(rows))
-	for _, row := range rows {
-		result = append(result, map[string]interface{}{
-			"region":  row["region"],
-			"revenue": row["revenue"],
-			"orders":  toFloat64(row["orders"]),
-		})
-	}
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, rows)
 }
 
 func (h *Handler) GetTopProducts(c *gin.Context) {
@@ -209,37 +156,7 @@ func (h *Handler) GetTopProducts(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	if len(rows) == 0 {
-		rows, err = h.ch.Query(`
-			SELECT
-				product,
-				category,
-				sum(quantity) AS quantity,
-				sum(total_amount) AS revenue
-			FROM ecommerce.orders
-			WHERE timestamp >= now() - INTERVAL 1 HOUR
-			GROUP BY product, category
-			ORDER BY revenue DESC
-			LIMIT 10
-		`)
-		if err != nil {
-			c.JSON(http.StatusOK, []map[string]interface{}{})
-			return
-		}
-		if rows == nil {
-			rows = []map[string]interface{}{}
-		}
-	}
-	result := make([]map[string]interface{}, 0, len(rows))
-	for _, row := range rows {
-		result = append(result, map[string]interface{}{
-			"product":   row["product"],
-			"category":  row["category"],
-			"quantity":  toFloat64(row["quantity"]),
-			"revenue":   row["revenue"],
-		})
-	}
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, rows)
 }
 
 func (h *Handler) GetErrorRate(c *gin.Context) {
@@ -315,6 +232,8 @@ func (h *Handler) ClearPipeline(c *gin.Context) {
 		h.ch.Execute(`TRUNCATE TABLE IF EXISTS ` + table)
 	}
 
+	
+
 	// Reset metrics
 	metrics.OrdersPublishedTotal.Add(0)
 	metrics.OrdersDLQTotal.Add(0)
@@ -323,14 +242,11 @@ func (h *Handler) ClearPipeline(c *gin.Context) {
 	atomic.StoreInt64(&metrics.EventsSinceLast, 0)
 	atomic.StoreInt64(&metrics.EventsSinceLast, 0)
 
-	// Reset generator counter and rate to default
+	// Reset generator counter
 	h.gen.ResetCounter()
-	h.gen.SetRate(1000)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":             true,
-		"message":             "Pipeline cleared successfully",
-		"events_per_minute":   1000,
-		"events_per_second":   1000 / 60,
+		"success": true,
+		"message": "Pipeline cleared successfully",
 	})
 }

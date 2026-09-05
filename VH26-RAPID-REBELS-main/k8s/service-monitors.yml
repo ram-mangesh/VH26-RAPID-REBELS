@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: datastream-services
+  namespace: datastream
+  labels:
+    app: datastream
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  namespaceSelector:
+    matchNames:
+    - datastream
+  endpoints:
+  - port: plaintext
+    interval: 10s
+    path: /metrics
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: datastream-apps
+  namespace: datastream
+  labels:
+    app: datastream
+spec:
+  selector:
+    matchLabels:
+      app: go-producer
+  namespaceSelector:
+    matchNames:
+    - datastream
+  endpoints:
+  - port: http
+    interval: 10s
+    path: /metrics
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: datastream-monitoring
+  namespace: datastream
+  labels:
+    app: datastream
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  namespaceSelector:
+    matchNames:
+    - datastream
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /metrics

@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-producer
+  namespace: datastream
+  labels:
+    app: go-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-producer
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: go-producer
+    spec:
+      containers:
+      - name: go-producer
+        image: datastream-main-go-producer:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: KAFKA_BROKERS
+          value: kafka:9092
+        - name: KAFKA_TOPIC_EVENTS
+          value: events
+        - name: KAFKA_TOPIC_DLQ
+          value: events-dlq
+        - name: CLICKHOUSE_HOST
+          value: clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "8123"
+        - name: CLICKHOUSE_DB
+          value: ecommerce
+        - name: EVENTS_PER_MINUTE
+          value: "1000"
+        - name: BATCH_SIZE
+          value: "100"
+        - name: WORKERS
+          value: "8"
+        - name: GIN_MODE
+          value: release
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-processor
+  namespace: datastream
+  labels:
+    app: stream-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stream-processor
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: stream-processor
+    spec:
+      containers:
+      - name: stream-processor
+        image: datastream-main-stream-processor:latest
+        command:
+        - bash
+        - -c
+        - |
+          echo 'Waiting for dependencies...' &&
+          sleep 15 &&
+          echo 'Starting stream processor...' &&
+          python3 /app/processor.py
+        env:
+        - name: KAFKA_BROKERS
+          value: kafka:9092
+        - name: KAFKA_TOPIC_ORDERS
+          value: orders
+        - name: KAFKA_TOPIC_DLQ
+          value: orders-dlq
+        - name: CLICKHOUSE_HOST
+          value: clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "8123"
+        - name: CLICKHOUSE_DB
+          value: ecommerce
+        - name: CLICKHOUSE_USER
+          value: default
+        - name: CLICKHOUSE_PASSWORD
+          value: ""
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - -f
+            - processor.py
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          exec:
+            command:
+            - pgrep
+            - -f
+            - processor.py
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+          successThreshold: 1

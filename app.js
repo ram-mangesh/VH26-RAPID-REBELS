@@ -53,7 +53,7 @@ function updateDashboard(state) {
   const w = state.workers || {};
   const r = state.routing || {};
 
-  document.getElementById('currentRate').textContent = formatRate(s.rate || 0);
+  document.getElementById('currentRate').textContent = (s.rate || 0).toFixed(1);
   document.getElementById('kpiThroughput').textContent = (m.throughput_eps || 0).toFixed(1);
   document.getElementById('kpiProcessed').textContent = formatNum(m.total_processed || 0);
   document.getElementById('kpiShed').textContent = formatNum(m.total_shed || 0);
@@ -82,13 +82,9 @@ function updateDashboard(state) {
   document.getElementById('qHigh').textContent = q.high || 0;
   document.getElementById('qLow').textContent = q.low || 0;
 
-  document.getElementById('tCritical').textContent = (tiers.CRITICAL?.throughput_eps || 0).toFixed(1) + ' EPS';
-  document.getElementById('tHigh').textContent = (tiers.HIGH?.throughput_eps || 0).toFixed(1) + ' EPS';
-  document.getElementById('tLow').textContent = (tiers.LOW?.throughput_eps || 0).toFixed(1) + ' EPS';
-
-  document.getElementById('tCritical2').textContent = (tiers.CRITICAL?.throughput_eps || 0).toFixed(1);
-  document.getElementById('tHigh2').textContent = (tiers.HIGH?.throughput_eps || 0).toFixed(1);
-  document.getElementById('tLow2').textContent = (tiers.LOW?.throughput_eps || 0).toFixed(1);
+  document.getElementById('tCritical').textContent = (tiers.CRITICAL?.throughput_eps || 0).toFixed(1);
+  document.getElementById('tHigh').textContent = (tiers.HIGH?.throughput_eps || 0).toFixed(1);
+  document.getElementById('tLow').textContent = (tiers.LOW?.throughput_eps || 0).toFixed(1);
 
   updateStrategy(r.mode, s.rate);
 
@@ -115,15 +111,6 @@ function updateDashboard(state) {
   detectShedEvents(m);
 }
 
-function formatRate(rate) {
-  if (typeof rate === 'number') {
-    if (rate >= 100000) return (rate / 1000000).toFixed(2) + 'M';
-    if (rate >= 1000) return (rate / 1000).toFixed(0) + 'K';
-    return rate.toString();
-  }
-  return String(rate);
-}
-
 function updateOverloadIndicator(state, mode) {
   const ind = document.getElementById('overloadIndicator2');
   const text = document.getElementById('overloadText2');
@@ -133,13 +120,13 @@ function updateOverloadIndicator(state, mode) {
 
   if (isSpike && totalLoad > 0.4) {
     ind.className = 'overload-indicator critical';
-    text.textContent = `LOAD: CRITICAL (${(totalLoad*100).toFixed(0)}%)`;
+    text.textContent = 'LOAD: CRITICAL (' + (totalLoad * 100).toFixed(0) + '%)';
   } else if (isSpike) {
     ind.className = 'overload-indicator warn';
-    text.textContent = 'LOAD: SPIKED — shedding × batching';
+    text.textContent = 'LOAD: SPIKED — shedding x batching';
   } else {
     ind.className = 'overload-indicator';
-    text.textContent = `LOAD: NORMAL (${(totalLoad*100).toFixed(0)}%)`;
+    text.textContent = 'LOAD: NORMAL (' + (totalLoad * 100).toFixed(0) + '%)';
   }
 }
 
@@ -187,12 +174,7 @@ function updateBreakdown(breakdown) {
     const el = document.createElement('div');
     el.className = 'bd-item';
     const label = t === 'inventory_update' ? 'inventory' : t === 'user_click' ? 'click' : t === 'app_log' ? 'log' : t;
-    el.innerHTML = `
-      <div class="bd-type">${label}</div>
-      <div class="bd-processed">${formatNum(data.processed)}</div>
-      <div class="bd-shed">${data.shed ? 'shed ' + formatNum(data.shed) : 'never shed'}</div>
-      <div class="bd-lat">${data.latency_avg_ms ? data.latency_avg_ms.toFixed(0) + 'ms' : ''}</div>
-    `;
+    el.innerHTML = '<div class="bd-type">' + label + '</div><div class="bd-processed">' + formatNum(data.processed) + '</div><div class="bd-shed">' + (data.shed ? 'shed ' + formatNum(data.shed) : 'never shed') + '</div><div class="bd-lat">' + (data.latency_avg_ms ? data.latency_avg_ms.toFixed(0) + 'ms' : '') + '</div>';
     grid.appendChild(el);
   });
 }
@@ -216,21 +198,17 @@ function updateReliability(state) {
 }
 
 function updateLatency(prefix, tierData) {
-  document.getElementById(`lat${prefix}Avg`).textContent = tierData.latency_avg_ms?.toFixed(1) || '0';
-  document.getElementById(`lat${prefix}P50`).textContent = tierData.latency_p50_ms?.toFixed(1) || '0';
-  document.getElementById(`lat${prefix}P95`).textContent = tierData.latency_p95_ms?.toFixed(1) || '0';
-  document.getElementById(`lat${prefix}P99`).textContent = tierData.latency_p99_ms?.toFixed(1) || '0';
+  document.getElementById('lat' + prefix + 'Avg').textContent = tierData.latency_avg_ms?.toFixed(1) || '0';
+  document.getElementById('lat' + prefix + 'P50').textContent = tierData.latency_p50_ms?.toFixed(1) || '0';
+  document.getElementById('lat' + prefix + 'P95').textContent = tierData.latency_p95_ms?.toFixed(1) || '0';
+  document.getElementById('lat' + prefix + 'P99').textContent = tierData.latency_p99_ms?.toFixed(1) || '0';
 }
 
 function updateStrategy(mode, rate) {
   const isSpike = String(mode).toLowerCase() === 'spike';
   document.getElementById('stratCritical').textContent = 'Stream — process immediately, 1 at a time (NEVER shed)';
-  document.getElementById('stratHigh').textContent = isSpike
-    ? 'Batch (size=5) — grouped under spike load'
-    : 'Stream — process immediately';
-  document.getElementById('stratLow').textContent = isSpike
-    ? 'Batch (size=50, timeout=500ms) — aggressive batching + shedding active'
-    : 'Batch (size=25, timeout=200ms) — micro-batched';
+  document.getElementById('stratHigh').textContent = isSpike ? 'Batch (size=5) — grouped under spike load' : 'Stream — process immediately';
+  document.getElementById('stratLow').textContent = isSpike ? 'Batch (size=50, timeout=500ms) — aggressive batching + shedding active' : 'Batch (size=25, timeout=200ms) — micro-batched';
 }
 
 function detectShedEvents(metrics) {
@@ -242,7 +220,6 @@ function detectShedEvents(metrics) {
   lastShedCount = currentShed;
 }
 
-/* --- Decision Trace --- */
 let lastTraceKey = '';
 function updateDecisionTrace(traces) {
   const list = document.getElementById('traceList');
@@ -258,14 +235,11 @@ function updateDecisionTrace(traces) {
     const se = t.shed_reason ? ' · ' + t.shed_reason : '';
     const cls = t.admitted ? 'trace-line-admit' : 'trace-line-shed';
     const tag = t.admitted ? 'ADMIT' : 'SHED';
-    html += '<div class="' + cls + '">[' + tag + '] ' + t.event_type + ' <b>' + t.priority + '</b> · ' +
-      'score=' + t.score + ' urgenc=' + t.urgency + ' ' + t.strategy + '(n=' + t.batch_size + ') · ' +
-      'prio=' + c.priority + ' lat=' + c.latency + ' load=' + c.load + ' sat=' + c.saturation + ' size=' + c.size + se + '</div>';
+    html += '<div class="' + cls + '">[' + tag + '] ' + t.event_type + ' <b>' + t.priority + '</b> · score=' + t.score + ' urgenc=' + t.urgency + ' ' + t.strategy + '(n=' + t.batch_size + ') · prio=' + c.priority + ' lat=' + c.latency + ' load=' + c.load + ' sat=' + c.saturation + ' size=' + c.size + se + '</div>';
   }
   list.innerHTML = html;
 }
 
-/* --- Fault / persistence panel --- */
 function updateFaultPanel(f, persistence) {
   document.getElementById('faultInjected').textContent = formatNum(f.faults_injected || 0);
   document.getElementById('faultRetried').textContent = formatNum(f.retries_performed || 0);
@@ -275,15 +249,11 @@ function updateFaultPanel(f, persistence) {
 
 async function killWorker() {
   await fetch('/api/kill-worker', { method: 'POST' });
-  addLog('shed', 'Worker crash injected → event retried idempotently (persisted once)');
+  addLog('shed', 'Worker crash injected — event retried idempotently (persisted once)');
 }
 
 async function enableFaults() {
-  await fetch('/api/fault/enable', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ failure_rate: 0.5, max_retries: 2 }),
-  });
+  await fetch('/api/fault/enable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ failure_rate: 0.5, max_retries: 2 }) });
   addLog('info', 'Faults ENABLED (50% transient failure, 2 retries)');
 }
 
@@ -292,17 +262,12 @@ async function disableFaults() {
   addLog('info', 'Faults disabled');
 }
 
-/* --- A/B comparison --- */
 async function runAB() {
   const status = document.getElementById('abStatus');
   status.textContent = 'Running adaptive vs naive under 40K/min overload (~25s)...';
   status.className = 'ab-status';
   document.getElementById('abGrid').style.display = 'none';
-  await fetch('/api/ab', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rate: 40000 }),
-  });
+  await fetch('/api/ab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rate: 40000 }) });
   setTimeout(() => pollABResult(), 6000);
 }
 
@@ -319,8 +284,8 @@ async function pollABResult() {
       document.getElementById('abNaiveLat').textContent = sum.critical_p95_naive_ms + ' ms';
       document.getElementById('abAdaptiveShed').textContent = formatNum(sum.shed_adaptive);
       document.getElementById('abNaiveShed').textContent = formatNum(sum.shed_naive);
-      document.getElementById('abSpeedup').textContent = sum.speedup_x + '×';
-      addLog('info', 'A/B done: adaptive ' + sum.critical_p95_adaptive_ms + 'ms vs naive ' + sum.critical_p95_naive_ms + 'ms (' + sum.speedup_x + '× faster)');
+      document.getElementById('abSpeedup').textContent = sum.speedup_x + 'x';
+      addLog('info', 'A/B done: adaptive ' + sum.critical_p95_adaptive_ms + 'ms vs naive ' + sum.critical_p95_naive_ms + 'ms (' + sum.speedup_x + 'x faster)');
     } else {
       setTimeout(() => pollABResult(), 3000);
     }
@@ -364,11 +329,7 @@ function drawChart(canvasId, history, isStacked) {
     ctx.stroke();
   }
 
-  const tiers = [
-    { key: 'low', color: COLORS.low },
-    { key: 'high', color: COLORS.high },
-    { key: 'critical', color: COLORS.critical },
-  ];
+  const tiers = [{ key: 'low', color: COLORS.low }, { key: 'high', color: COLORS.high }, { key: 'critical', color: COLORS.critical }];
 
   for (const tier of tiers) {
     const data = history[tier.key];
@@ -419,15 +380,9 @@ function formatNum(n) {
 
 async function setRate(rate) {
   document.getElementById('btnBaseline').classList.toggle('active', rate === 1000);
-  document.getElementById('btnSpike').classList.toggle('active', rate === 100000);
-  const rateLabel = rate >= 100000 ? '1L (' + rate.toLocaleString() + ')' : rate.toLocaleString();
-  addLog('info', 'Rate set to ' + rateLabel + ' events/min');
-  await fetch('/api/rate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rate }),
-  });
-  document.getElementById('currentRate').textContent = rate >= 100000 ? '1L' : (rate >= 1000 ? (rate/1000).toFixed(0) + 'K' : rate);
+  document.getElementById('btnSpike').classList.toggle('active', rate === 20000);
+  addLog('info', 'Rate set to ' + rate.toLocaleString() + ' events/min');
+  await fetch('/api/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rate }) });
 }
 
 async function togglePipeline() {
@@ -460,7 +415,6 @@ async function resetPipeline() {
 
 connect();
 
-/* --- Theme toggle --- */
 function applyTheme(theme) {
   if (theme === 'light') {
     document.documentElement.classList.add('light');

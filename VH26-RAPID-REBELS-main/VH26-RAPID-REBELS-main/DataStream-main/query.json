@@ -1,0 +1,1 @@
+{"queries":[{"refId":"A","datasource":{"uid":"clickhouse","type":"grafana-clickhouse-datasource"},"rawSql":"SELECT count() FROM ecommerce.orders WHERE toDate(timestamp) = today()"}]}

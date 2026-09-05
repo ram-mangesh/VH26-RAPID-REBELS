@@ -45,13 +45,3 @@ export async function fetchRealtimeRate(): Promise<RealtimeRate> {
   const { data } = await api.get<RealtimeRate>('/metrics/realtime-rate')
   return data
 }
-
-const intelApi = axios.create({
-  baseURL: '/intel-api',
-  timeout: 10_000,
-})
-
-export async function resetIntelligencePipeline(): Promise<{ ok: boolean }> {
-  const { data } = await intelApi.post('/api/reset')
-  return data
-}

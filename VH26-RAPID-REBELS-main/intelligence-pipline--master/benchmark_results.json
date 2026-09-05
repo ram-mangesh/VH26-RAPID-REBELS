@@ -1,0 +1,298 @@
+{
+  "adaptive_baseline": {
+    "total_processed": 327,
+    "total_shed": 0,
+    "total_batched": 0,
+    "total_streamed": 327,
+    "total_retried": 0,
+    "total_duplicates_detected": 0,
+    "tiers": {
+      "CRITICAL": {
+        "latency_avg_ms": 58.94,
+        "latency_p50_ms": 63.82,
+        "latency_p95_ms": 86.09,
+        "latency_p99_ms": 91.55,
+        "throughput_eps": 5.7,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 17
+      },
+      "HIGH": {
+        "latency_avg_ms": 23.84,
+        "latency_p50_ms": 24.77,
+        "latency_p95_ms": 38.99,
+        "latency_p99_ms": 40.67,
+        "throughput_eps": 2.3,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 7
+      },
+      "LOW": {
+        "latency_avg_ms": 19.21,
+        "latency_p50_ms": 18.5,
+        "latency_p95_ms": 25.03,
+        "latency_p99_ms": 25.77,
+        "throughput_eps": 8.0,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 24
+      }
+    },
+    "throughput_eps": 16.0,
+    "timestamp": 3060.189856034,
+    "event_type_breakdown": {
+      "payment": {
+        "processed": 53,
+        "shed": 0,
+        "pct_processed": 16.21,
+        "latency_avg_ms": 46.97
+      },
+      "order": {
+        "processed": 81,
+        "shed": 0,
+        "pct_processed": 24.77,
+        "latency_avg_ms": 67.94
+      },
+      "inventory_update": {
+        "processed": 33,
+        "shed": 0,
+        "pct_processed": 10.09,
+        "latency_avg_ms": 26.08
+      },
+      "user_click": {
+        "processed": 102,
+        "shed": 0,
+        "pct_processed": 31.19,
+        "latency_avg_ms": 21.13
+      },
+      "app_log": {
+        "processed": 58,
+        "shed": 0,
+        "pct_processed": 17.74,
+        "latency_avg_ms": 17.95
+      }
+    }
+  },
+  "adaptive_spike": {
+    "total_processed": 5537,
+    "total_shed": 475,
+    "total_batched": 2771,
+    "total_streamed": 2766,
+    "total_retried": 0,
+    "total_duplicates_detected": 0,
+    "tiers": {
+      "CRITICAL": {
+        "latency_avg_ms": 212.12,
+        "latency_p50_ms": 203.37,
+        "latency_p95_ms": 288.5,
+        "latency_p99_ms": 355.88,
+        "throughput_eps": 65.3,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 196
+      },
+      "HIGH": {
+        "latency_avg_ms": 40.68,
+        "latency_p50_ms": 36.31,
+        "latency_p95_ms": 76.71,
+        "latency_p99_ms": 88.2,
+        "throughput_eps": 49.0,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 147
+      },
+      "LOW": {
+        "latency_avg_ms": 25.55,
+        "latency_p50_ms": 25.52,
+        "latency_p95_ms": 29.19,
+        "latency_p99_ms": 30.34,
+        "throughput_eps": 142.3,
+        "shed_count": 475,
+        "batch_count": 2771,
+        "sample_count": 427
+      }
+    },
+    "throughput_eps": 256.7,
+    "timestamp": 3080.19147803,
+    "event_type_breakdown": {
+      "payment": {
+        "processed": 775,
+        "shed": 0,
+        "pct_processed": 14.0,
+        "latency_avg_ms": 162.98
+      },
+      "order": {
+        "processed": 988,
+        "shed": 0,
+        "pct_processed": 17.84,
+        "latency_avg_ms": 188.48
+      },
+      "inventory_update": {
+        "processed": 1003,
+        "shed": 0,
+        "pct_processed": 18.11,
+        "latency_avg_ms": 40.09
+      },
+      "user_click": {
+        "processed": 1689,
+        "shed": 285,
+        "pct_processed": 30.5,
+        "latency_avg_ms": 25.31
+      },
+      "app_log": {
+        "processed": 1082,
+        "shed": 190,
+        "pct_processed": 19.54,
+        "latency_avg_ms": 24.45
+      }
+    }
+  },
+  "naive_baseline": {
+    "total_processed": 328,
+    "total_shed": 0,
+    "total_batched": 0,
+    "total_streamed": 328,
+    "total_retried": 0,
+    "total_duplicates_detected": 0,
+    "tiers": {
+      "CRITICAL": {
+        "latency_avg_ms": 56.97,
+        "latency_p50_ms": 53.74,
+        "latency_p95_ms": 94.98,
+        "latency_p99_ms": 99.95,
+        "throughput_eps": 4.9,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 49
+      },
+      "HIGH": {
+        "latency_avg_ms": 27.71,
+        "latency_p50_ms": 28.31,
+        "latency_p95_ms": 39.6,
+        "latency_p99_ms": 40.31,
+        "throughput_eps": 2.9,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 29
+      },
+      "LOW": {
+        "latency_avg_ms": 8.85,
+        "latency_p50_ms": 8.53,
+        "latency_p95_ms": 14.71,
+        "latency_p99_ms": 15.52,
+        "throughput_eps": 8.7,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 87
+      }
+    },
+    "throughput_eps": 16.5,
+    "timestamp": 3100.193675263,
+    "event_type_breakdown": {
+      "payment": {
+        "processed": 48,
+        "shed": 0,
+        "pct_processed": 14.63,
+        "latency_avg_ms": 49.63
+      },
+      "order": {
+        "processed": 61,
+        "shed": 0,
+        "pct_processed": 18.6,
+        "latency_avg_ms": 62.34
+      },
+      "inventory_update": {
+        "processed": 53,
+        "shed": 0,
+        "pct_processed": 16.16,
+        "latency_avg_ms": 26.79
+      },
+      "user_click": {
+        "processed": 86,
+        "shed": 0,
+        "pct_processed": 26.22,
+        "latency_avg_ms": 10.88
+      },
+      "app_log": {
+        "processed": 80,
+        "shed": 0,
+        "pct_processed": 24.39,
+        "latency_avg_ms": 7.63
+      }
+    }
+  },
+  "naive_spike": {
+    "total_processed": 5433,
+    "total_shed": 0,
+    "total_batched": 0,
+    "total_streamed": 5433,
+    "total_retried": 0,
+    "total_duplicates_detected": 0,
+    "tiers": {
+      "CRITICAL": {
+        "latency_avg_ms": 2696.89,
+        "latency_p50_ms": 2655.18,
+        "latency_p95_ms": 3321.03,
+        "latency_p99_ms": 3372.36,
+        "throughput_eps": 95.2,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 952
+      },
+      "HIGH": {
+        "latency_avg_ms": 2682.83,
+        "latency_p50_ms": 2620.42,
+        "latency_p95_ms": 3295.36,
+        "latency_p99_ms": 3328.87,
+        "throughput_eps": 40.9,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 409
+      },
+      "LOW": {
+        "latency_avg_ms": 2671.59,
+        "latency_p50_ms": 2622.25,
+        "latency_p95_ms": 3285.54,
+        "latency_p99_ms": 3322.37,
+        "throughput_eps": 144.2,
+        "shed_count": 0,
+        "batch_count": 0,
+        "sample_count": 1442
+      }
+    },
+    "throughput_eps": 280.3,
+    "timestamp": 3120.194428811,
+    "event_type_breakdown": {
+      "payment": {
+        "processed": 792,
+        "shed": 0,
+        "pct_processed": 14.58,
+        "latency_avg_ms": 2483.29
+      },
+      "order": {
+        "processed": 1105,
+        "shed": 0,
+        "pct_processed": 20.34,
+        "latency_avg_ms": 2766.24
+      },
+      "inventory_update": {
+        "processed": 807,
+        "shed": 0,
+        "pct_processed": 14.85,
+        "latency_avg_ms": 2496.66
+      },
+      "user_click": {
+        "processed": 1662,
+        "shed": 0,
+        "pct_processed": 30.59,
+        "latency_avg_ms": 2962.43
+      },
+      "app_log": {
+        "processed": 1067,
+        "shed": 0,
+        "pct_processed": 19.64,
+        "latency_avg_ms": 2755.53
+      }
+    }
+  }
+}

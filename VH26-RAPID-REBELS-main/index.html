@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligent Data Pipeline — Live Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-left">
+      <h1>Intelligent Data Pipeline</h1>
+      <span class="subtitle">Adaptive Processing Dashboard</span>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
+      <div class="status-badge" id="statusBadge">
+        <span class="dot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div class="mode-badge" id="modeBadge">NORMAL</div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <button id="btnBaseline" class="btn btn-blue" onclick="setRate(1000)">Baseline (1K)</button>
+    <button id="btnSpike" class="btn btn-red" onclick="setRate(100000)">Max Spike (1L)</button>
+    <button id="btnStop" class="btn btn-gray" onclick="togglePipeline()">Stop</button>
+    <button class="btn btn-outline" onclick="resetPipeline()">Reset</button>
+    <div class="rate-display">
+      <span class="label">Current Rate:</span>
+      <span id="currentRate" class="value">0</span>
+      <span class="unit">evt/min</span>
+    </div>
+    <div class="overload-indicator" id="overloadIndicator">
+      <span class="ol-dot"></span>
+      <span id="overloadText">LOAD: NORMAL</span>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Throughput</div>
+      <div class="kpi-value" id="kpiThroughput">0</div>
+      <div class="kpi-unit">events/sec</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Processed</div>
+      <div class="kpi-value" id="kpiProcessed">0</div>
+      <div class="kpi-unit">events</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Shed</div>
+      <div class="kpi-value" id="kpiShed">0</div>
+      <div class="kpi-unit">events</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Workers Busy</div>
+      <div class="kpi-value" id="kpiWorkersBusy">0</div>
+      <div class="kpi-unit">/ <span id="kpiWorkersTotal">0</span></div>
+    </div>
+  </div>
+
+  <div class="mode-row">
+    <div class="mode-info">
+      <h2>Routing Mode: <span id="routeMode">NORMAL</span></h2>
+      <div class="mode-stats">
+        <div>
+          <span class="route-label">Admitted:</span>
+          <span id="routeAdmitted">0</span>
+        </div>
+        <div>
+          <span class="route-label">Shed:</span>
+          <span id="routeShed">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="overload-section">
+      <div class="overload-indicator" id="overloadIndicator2">
+        <span class="ol-dot"></span>
+        <span id="overloadText2">LOAD: NORMAL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="latency-grid">
+    <div class="latency-card critical">
+      <div class="latency-header">
+        <span class="tier-badge critical">CRITICAL</span>
+        <span class="throughput-badge" id="tCritical">0 EPS</span>
+      </div>
+      <div class="latency-stats">
+        <div class="latency-stat"><span class="label">Avg</span><span id="latCAvg">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P50</span><span id="latCP50">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P95</span><span id="latCP95">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P99</span><span id="latCP99">0</span>ms</div>
+        <div class="latency-stat"><span class="label">Shed</span><span id="latCS shed">0</span></div>
+        <div class="latency-stat"><span class="label">Batch</span><span id="latCBatch">0</span></div>
+        <div class="latency-stat"><span class="label">Samples</span><span id="latCSamples">0</span></div>
+      </div>
+    </div>
+    <div class="latency-card high">
+      <div class="latency-header">
+        <span class="tier-badge high">HIGH</span>
+        <span class="throughput-badge" id="tHigh">0 EPS</span>
+      </div>
+      <div class="latency-stats">
+        <div class="latency-stat"><span class="label">Avg</span><span id="latHAvg">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P50</span><span id="latHP50">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P95</span><span id="latHP95">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P99</span><span id="latHP99">0</span>ms</div>
+        <div class="latency-stat"><span class="label">Shed</span><span id="latHShed">0</span></div>
+        <div class="latency-stat"><span class="label">Batch</span><span id="latHBatch">0</span></div>
+        <div class="latency-stat"><span class="label">Samples</span><span id="latHSamples">0</span></div>
+      </div>
+    </div>
+    <div class="latency-card low">
+      <div class="latency-header">
+        <span class="tier-badge low">LOW</span>
+        <span class="throughput-badge" id="tLow">0 EPS</span>
+      </div>
+      <div class="latency-stats">
+        <div class="latency-stat"><span class="label">Avg</span><span id="latLAvg">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P50</span><span id="latLP50">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P95</span><span id="latLP95">0</span>ms</div>
+        <div class="latency-stat"><span class="label">P99</span><span id="latLP99">0</span>ms</div>
+        <div class="latency-stat"><span class="label">Shed</span><span id="latLShed">0</span></div>
+        <div class="latency-stat"><span class="label">Batch</span><span id="latLBatch">0</span></div>
+        <div class="latency-stat"><span class="label">Samples</span><span id="latLSamples">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-panel">
+      <h2>Queue Depth</h2>
+      <canvas id="queueChart" width="800" height="300"></canvas>
+    </div>
+    <div class="chart-panel">
+      <h2>Throughput (EPS)</h2>
+      <canvas id="throughputChart" width="800" height="300"></canvas>
+    </div>
+  </div>
+
+  <div class="strategy-panel">
+    <h2>Active Strategy</h2>
+    <div class="strategy-list">
+      <div class="strategy-item critical"><span class="strategy-label">Critical:</span><span id="stratCritical">Stream — process immediately, 1 at a time (NEVER shed)</span></div>
+      <div class="strategy-item high"><span class="strategy-label">High:</span><span id="stratHigh">Stream — process immediately</span></div>
+      <div class="strategy-item low"><span class="strategy-label">Low:</span><span id="stratLow">Batch (size=25, timeout=200ms) — micro-batched</span></div>
+    </div>
+  </div>
+
+  <div class="overload-grid">
+    <div class="overload-card">
+      <h2>Queue Status</h2>
+      <div class="overload-stats">
+        <div class="overload-stat critical"><span class="label">Critical</span><span id="qCritical">0</span></div>
+        <div class="overload-stat high"><span class="label">High</span><span id="qHigh">0</span></div>
+        <div class="overload-stat low"><span class="label">Low</span><span id="qLow">0</span></div>
+      </div>
+    </div>
+    <div class="overload-card">
+      <h2>Throughput by Tier</h2>
+      <div class="overload-stats">
+        <div class="overload-stat critical"><span class="label">Critical EPS</span><span id="tCritical2">0</span></div>
+        <div class="overload-stat high"><span class="label">High EPS</span><span id="tHigh2">0</span></div>
+        <div class="overload-stat low"><span class="label">Low EPS</span><span id="tLow2">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="breakdown-panel">
+    <h2>Event Type Breakdown</h2>
+    <canvas id="breakdownChart" width="800" height="100"></canvas>
+    <div id="breakdownGrid" class="breakdown-grid"></div>
+  </div>
+
+  <div class="reliability-panel">
+    <h2>Reliability &amp; Cost</h2>
+    <div class="reliability-grid">
+      <div class="rel-card">
+        <span class="rel-label">Dedup Blocked</span>
+        <span class="rel-value" id="relDedup">0</span>
+      </div>
+      <div class="rel-card">
+        <span class="rel-label">Retried</span>
+        <span class="rel-value" id="relRetried">0</span>
+      </div>
+      <div class="rel-card">
+        <span class="rel-label">Adaptive Cost</span>
+        <span class="rel-value" id="relCostAdaptive">$0.0000</span>
+      </div>
+      <div class="rel-card">
+        <span class="rel-label">Naive Baseline Cost</span>
+        <span class="rel-value" id="relCostNaive">$0.0000</span>
+      </div>
+      <div class="rel-card">
+        <span class="rel-label">Cost Saved</span>
+        <span class="rel-value" id="relCostSaved">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ab-panel">
+    <h2>A/B — Adaptive vs Naive <span class="hint">head-to-head under the same spike</span></h2>
+    <button class="btn btn-outline" onclick="runAB()" id="btnAB">Run A/B Comparison (40K/min spike)</button>
+    <div id="abStatus" class="ab-status"></div>
+    <div id="abGrid" class="ab-grid" style="display: none;">
+      <div class="ab-card"><span class="ab-label">Adaptive P95 Latency</span><span class="ab-value" id="abAdaptiveLat">—</span></div>
+      <div class="ab-card"><span class="ab-label">Naive P95 Latency</span><span class="ab-value" id="abNaiveLat">—</span></div>
+      <div class="ab-card"><span class="ab-label">Adaptive Shed Count</span><span class="ab-value" id="abAdaptiveShed">—</span></div>
+      <div class="ab-card"><span class="ab-label">Naive Shed Count</span><span class="ab-value" id="abNaiveShed">—</span></div>
+      <div class="ab-card"><span class="ab-label">Speedup</span><span class="ab-value" id="abSpeedup">—</span></div>
+    </div>
+  </div>
+
+  <div class="decision-trace-panel">
+    <h2>Decision Trace</h2>
+    <div id="traceList" class="trace-list"></div>
+  </div>
+
+  <div class="fault-panel">
+    <h2>Fault &amp; Persistence</h2>
+    <div class="fault-grid">
+      <div class="fault-card">
+        <span class="fault-label">Faults Injected</span>
+        <span class="fault-value" id="faultInjected">0</span>
+      </div>
+      <div class="fault-card">
+        <span class="fault-label">Retries Performed</span>
+        <span class="fault-value" id="faultRetried">0</span>
+      </div>
+      <div class="fault-card">
+        <span class="fault-label">Duplicates Blocked</span>
+        <span class="fault-value" id="dupBlocked">0</span>
+      </div>
+      <div class="fault-card">
+        <span class="fault-label">Total Persisted</span>
+        <span class="fault-value" id="persisted">0</span>
+      </div>
+    </div>
+    <div class="fault-actions">
+      <button class="btn btn-outline" onclick="enableFaults()">Enable Faults (50%)</button>
+      <button class="btn btn-outline" onclick="disableFaults()">Disable Faults</button>
+      <button class="btn btn-outline" onclick="killWorker()">Crash Worker</button>
+    </div>
+  </div>
+
+  <div class="shed-log-panel">
+    <h2>Shedding Log</h2>
+    <div id="shedLog" class="shed-log"></div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
