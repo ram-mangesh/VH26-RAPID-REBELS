@@ -159,6 +159,25 @@ func (h *Handler) GetRevenueByRegion(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
+	if len(rows) == 0 {
+		rows, err = h.ch.Query(`
+			SELECT
+				region,
+				sum(total_amount) AS revenue,
+				count() AS orders
+			FROM ecommerce.orders
+			WHERE timestamp >= now() - INTERVAL 1 HOUR
+			GROUP BY region
+			ORDER BY revenue DESC
+		`)
+		if err != nil {
+			c.JSON(http.StatusOK, []map[string]interface{}{})
+			return
+		}
+		if rows == nil {
+			rows = []map[string]interface{}{}
+		}
+	}
 	result := make([]map[string]interface{}, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, map[string]interface{}{
@@ -189,6 +208,27 @@ func (h *Handler) GetTopProducts(c *gin.Context) {
 	}
 	if rows == nil {
 		rows = []map[string]interface{}{}
+	}
+	if len(rows) == 0 {
+		rows, err = h.ch.Query(`
+			SELECT
+				product,
+				category,
+				sum(quantity) AS quantity,
+				sum(total_amount) AS revenue
+			FROM ecommerce.orders
+			WHERE timestamp >= now() - INTERVAL 1 HOUR
+			GROUP BY product, category
+			ORDER BY revenue DESC
+			LIMIT 10
+		`)
+		if err != nil {
+			c.JSON(http.StatusOK, []map[string]interface{}{})
+			return
+		}
+		if rows == nil {
+			rows = []map[string]interface{}{}
+		}
 	}
 	result := make([]map[string]interface{}, 0, len(rows))
 	for _, row := range rows {
