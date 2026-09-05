@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchGeneratorRate, setGeneratorRate, clearPipeline } from '../api/client'
+import { fetchGeneratorRate, setGeneratorRate, clearPipeline, resetIntelligencePipeline } from '../api/client'
 
 export function RateControl({ onRateChange }: { onRateChange: (rate: number) => void }) {
   const [rate, setRate] = useState<number | null>(null)
@@ -67,8 +67,9 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
     setClearing(true)
     try {
       await clearPipeline()
+      await resetIntelligencePipeline()
       await handleRateChange(1000)
-      showFeedback('Pipeline cleared — spike latency reset to original')
+      showFeedback('All pipelines cleared — spike latency & intelligence metrics reset')
       setTimeout(fetchRate, 2000)
     } catch (err) {
       console.error('Failed to clear pipeline:', err)
