@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -34,6 +35,22 @@ func New(producer *kfk.Producer, gen *generator.Generator) *Handler {
 		topicDLQ:    getEnv("KAFKA_TOPIC_DLQ", "events-dlq"),
 		gen:         gen,
 	}
+}
+
+func toFloat64(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int64:
+		return float64(val)
+	case uint64:
+		return float64(val)
+	case string:
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f
+		}
+	}
+	return 0
 }
 
 func getEnv(key, def string) string {
@@ -112,7 +129,16 @@ func (h *Handler) GetOrdersPerMinute(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	c.JSON(http.StatusOK, rows)
+	result := make([]map[string]interface{}, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, map[string]interface{}{
+			"minute":         row["minute"],
+			"order_count":    toFloat64(row["order_count"]),
+			"total_revenue":  row["total_revenue"],
+			"failed_count":   toFloat64(row["failed_count"]),
+		})
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *Handler) GetRevenueByRegion(c *gin.Context) {
@@ -133,7 +159,15 @@ func (h *Handler) GetRevenueByRegion(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	c.JSON(http.StatusOK, rows)
+	result := make([]map[string]interface{}, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, map[string]interface{}{
+			"region":  row["region"],
+			"revenue": row["revenue"],
+			"orders":  toFloat64(row["orders"]),
+		})
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *Handler) GetTopProducts(c *gin.Context) {
@@ -156,7 +190,16 @@ func (h *Handler) GetTopProducts(c *gin.Context) {
 	if rows == nil {
 		rows = []map[string]interface{}{}
 	}
-	c.JSON(http.StatusOK, rows)
+	result := make([]map[string]interface{}, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, map[string]interface{}{
+			"product":   row["product"],
+			"category":  row["category"],
+			"quantity":  toFloat64(row["quantity"]),
+			"revenue":   row["revenue"],
+		})
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *Handler) GetErrorRate(c *gin.Context) {
