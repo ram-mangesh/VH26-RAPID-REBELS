@@ -17,7 +17,7 @@ const SERVICES = [
 ] as const
 
 export function Dashboard() {
-  const { ordersPerMinute, revenueByRegion, topProducts, errorRate, realtimeRate, loading, lastUpdated } =
+  const { ordersPerMinute, revenueByRegion, topProducts, errorRate, loading, lastUpdated } =
     useMetrics()
   const { theme, toggleTheme } = useTheme()
 
@@ -51,12 +51,10 @@ export function Dashboard() {
               {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
             </button>
             <RateControl onRateChange={() => {}} />
-           {realtimeRate && (
-             <div className="hidden items-center gap-1.5 text-xs text-emerald-400 sm:flex">
-               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-               Live: {(realtimeRate.events_per_minute / 1000).toFixed(1)}K/min
-             </div>
-           )}
+           <div className="hidden items-center gap-1.5 text-xs text-emerald-400 sm:flex">
+             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+             Live
+           </div>
             <div className="hidden items-center gap-1.5 text-xs text-secondary sm:flex">
               {PIPELINE_STEPS.map((step, i) => (
                 <span key={step} className="flex items-center gap-1.5">

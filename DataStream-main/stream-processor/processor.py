@@ -276,12 +276,30 @@ def write_total_event_count(ch, count: int):
         log.error("Total event count write failed: %s", e)
 
 
+last_realtime_write = 0
+
+
 def write_realtime_counter(ch, accepted: int, rejected: int):
+    global last_realtime_write
+    now = time.time()
+    if now - last_realtime_write < 10:
+        return
+    last_realtime_write = now
     try:
         dt = datetime.now(timezone.utc)
+        accepted_in_window = accepted - (getattr(write_realtime_counter, "prev_accepted", 0) or 0)
+        rejected_in_window = rejected - (getattr(write_realtime_counter, "prev_rejected", 0) or 0)
+        setattr(write_realtime_counter, "prev_accepted", accepted)
+        setattr(write_realtime_counter, "prev_rejected", rejected)
+        if accepted_in_window < 0:
+            accepted_in_window = 0
+        if rejected_in_window < 0:
+            rejected_in_window = 0
+        success_pct = round(100 * accepted_in_window / max(accepted_in_window + rejected_in_window, 1), 2)
         ch.insert("realtime_orders_per_minute",
-                  [[dt, accepted, rejected, int((accepted / max(rejected, 1)) * 100) if rejected > 0 else 100]],
+                  [[dt, accepted_in_window, rejected_in_window, success_pct]],
                   column_names=["timestamp", "accepted", "rejected", "success_pct"])
+        log.info("Realtime: %d accepted, %d rejected", accepted_in_window, rejected_in_window)
     except Exception as e:
         log.error("Realtime counter write failed: %s", e)
 
