@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>API Test</h1>
+<div id="result"></div>
+<script>
+async function test() {
+  try {
+    const resp = await fetch('/intel-api/api/rate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({rate: 1000})
+    });
+    const body = await resp.text();
+    document.getElementById('result').innerHTML = 'Status: ' + resp.status + '<br>Body: ' + body;
+  } catch(e) {
+    document.getElementById('result').innerHTML = 'Error: ' + e.message;
+  }
+}
+test();
+</script>
+</body>
+</html>
