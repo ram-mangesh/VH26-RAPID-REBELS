@@ -372,7 +372,8 @@ def main():
                 pass
             last_log = now
 
-    for ts, events in win_5m.closed_buckets():
+        # Close 5-min windows (same as 1-min but every 5 minutes)
+        for ts, events in win_5m.closed_buckets():
             try:
                 write_5m_window(ch, ts, events)
             except Exception as e:

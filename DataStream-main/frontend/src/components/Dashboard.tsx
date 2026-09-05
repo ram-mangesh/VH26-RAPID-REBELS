@@ -17,7 +17,7 @@ const SERVICES = [
 ] as const
 
 export function Dashboard() {
-  const { ordersPerMinute, revenueByRegion, topProducts, errorRate, generatorRate, loading, lastUpdated } =
+  const { ordersPerMinute, revenueByRegion, topProducts, errorRate, loading, lastUpdated } =
     useMetrics()
   const { theme, toggleTheme } = useTheme()
 
@@ -50,10 +50,7 @@ export function Dashboard() {
             >
               {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
             </button>
-            <RateControl 
-              initialRate={generatorRate?.events_per_minute ?? 1000} 
-              onRateChange={() => {}}
-            />
+            <RateControl onRateChange={() => {}} />
             <div className="hidden items-center gap-1.5 text-xs text-secondary sm:flex">
               {PIPELINE_STEPS.map((step, i) => (
                 <span key={step} className="flex items-center gap-1.5">
