@@ -275,8 +275,6 @@ func (h *Handler) ClearPipeline(c *gin.Context) {
 		h.ch.Execute(`TRUNCATE TABLE IF EXISTS ` + table)
 	}
 
-	
-
 	// Reset metrics
 	metrics.OrdersPublishedTotal.Add(0)
 	metrics.OrdersDLQTotal.Add(0)
@@ -285,11 +283,14 @@ func (h *Handler) ClearPipeline(c *gin.Context) {
 	atomic.StoreInt64(&metrics.EventsSinceLast, 0)
 	atomic.StoreInt64(&metrics.EventsSinceLast, 0)
 
-	// Reset generator counter
+	// Reset generator counter and rate to default
 	h.gen.ResetCounter()
+	h.gen.SetRate(1000)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Pipeline cleared successfully",
+		"success":             true,
+		"message":             "Pipeline cleared successfully",
+		"events_per_minute":   1000,
+		"events_per_second":   1000 / 60,
 	})
 }

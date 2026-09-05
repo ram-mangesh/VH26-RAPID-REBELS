@@ -67,7 +67,8 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
     setClearing(true)
     try {
       await clearPipeline()
-      showFeedback('Pipeline cleared — generating fresh data...')
+      await handleRateChange(1000)
+      showFeedback('Pipeline cleared — spike latency reset to original')
       setTimeout(fetchRate, 2000)
     } catch (err) {
       console.error('Failed to clear pipeline:', err)
