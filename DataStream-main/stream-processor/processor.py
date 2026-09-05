@@ -33,7 +33,6 @@ CH_PASS         = os.getenv("CLICKHOUSE_PASSWORD", "")
 LATE_TOLERANCE_S = 10
 WINDOW_1M_S      = 60
 WINDOW_5M_S      = 300
-REALTIME_FLUSH_S = 10
 
 
 # ─── Connections ──────────────────────────────────────────────────────────────
@@ -282,7 +281,7 @@ last_realtime_write = 0
 def write_realtime_counter(ch, accepted: int, rejected: int):
     global last_realtime_write
     now = time.time()
-    if now - last_realtime_write < 10:
+    if now - last_realtime_write < 2:
         return
     last_realtime_write = now
     try:
@@ -378,7 +377,7 @@ def main():
                         log.error("Raw batch write failed: %s", e)
 
         now = time.time()
-        if raw_batch and (len(raw_batch) >= 100 or now - last_flush >= 2):
+        if raw_batch and (len(raw_batch) >= 100 or now - last_flush >= 0.5):
             try:
                 write_raw_batch(ch, raw_batch)
                 raw_batch = []

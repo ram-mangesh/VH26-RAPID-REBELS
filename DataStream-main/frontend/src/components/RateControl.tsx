@@ -54,12 +54,12 @@ export function RateControl({ onRateChange }: { onRateChange: (rate: number) => 
     }
     showFeedback(`Ramping up: ${steps.join(' → ')} → ${targetRate / 1000}K`)
     for (const step of steps) {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 500))
       await handleRateChange(step)
     }
     setTimeout(async () => {
       await handleRateChange(targetRate)
-    }, 500)
+    }, 200)
   }
 
   const handleClear = async () => {
